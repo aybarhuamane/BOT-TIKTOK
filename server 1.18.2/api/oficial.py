@@ -9,7 +9,7 @@ import queue
 import asyncio
 import time
 import random
-
+import socket
 
 # -----------------------------
 # CONFIG
@@ -86,10 +86,23 @@ def mc_command(cmd):
         return None
 
 # -----------------------------
+# CHEQUEO DE INTERNET
+# -----------------------------
+
+def hay_internet():
+    try:
+        socket.create_connection(("1.1.1.1", 53), timeout=3).close()
+        return True
+    except OSError:
+        return False
+# -----------------------------
 # HOLOGRAMA TOP LIKES
 # -----------------------------
 def json_escape(text):
     return str(text).replace("\\", "\\\\").replace('"', '\\"')
+
+def off_hologram(tag):
+    mc_command(f'kill @e[type=minecraft:armor_stand,tag={tag}]')
 
 def clear_hologram(tag):
     mc_command(f'kill @e[type=minecraft:armor_stand,tag={tag}]')
@@ -596,16 +609,28 @@ async def on_like(event):
 # RUN
 # -----------------------------
 if __name__ == "__main__":
-    try:
-        client.run()
-    except Exception as e:
-        msg = str(e)
-        print("\nERROR DE TIKTOKLIVE:")
-        print(msg)
+    while True:
+        try:
+            if not hay_internet():
+                print("Sin internet... esperando reconexión.")
+                while not hay_internet():
+                    time.sleep(5)
+                print("Internet restablecido. Reconectando TikTok...")
 
-        if "DEVICE_BLOCKED" in msg:
-            print("\nTikTok bloqueó temporalmente este dispositivo/sesión para WebSocket.")
-            print("Espera un rato antes de reintentar y evita abrir/cerrar el bot muchas veces seguidas.")
-        elif "RATE_LIMIT" in msg:
-            print("\nLlegaste al límite temporal del servicio de firmado.")
-            print("Espera antes de volver a ejecutar el bot.")
+            bot_ready = False
+            client.run()
+
+        except KeyboardInterrupt:
+            print("Bot detenido manualmente.")
+            break
+
+        except Exception as e:
+            bot_ready = False
+            print(f"Se perdió la conexión con TikTok: {e}")
+            print("Esperando internet para reconectar...")
+
+            while not hay_internet():
+                time.sleep(5)
+
+            print("Internet volvió. Reintentando conexión en 3 segundos...")
+            time.sleep(3)
