@@ -1,5 +1,8 @@
 # GAME 1  - MATAR A CREEP
 
+#library personalizada
+from hologramas import actualizar_toplikes_holograma, actualizar_topmoney_holograma
+# libary general
 from TikTokLive import TikTokLiveClient
 from TikTokLive.events import CommentEvent, LikeEvent, GiftEvent, FollowEvent, ConnectEvent
 from mcrcon import MCRcon
@@ -38,22 +41,6 @@ coord_centro = "559 104 -389"
 # coord_good = "558 104 -402"
 # coord_centro = "555 102 -402"
 
-
-# -----------------------------
-# HOLOGRAMA TOP LIKES
-# -----------------------------
-HOLO_LIKES_X = 559
-HOLO_LIKES_Y = 1088
-HOLO_LIKES_Z = -385
-HOLO_TAG_LIKES = "topLikesHg"
-
-# -----------------------------
-# HOLOGRAMA TOP MONEY
-# -----------------------------
-HOLO_MONEY_X = 559
-HOLO_MONEY_Y = 1099
-HOLO_MONEY_Z = -385
-HOLO_TAG_MONEY = "topMoneyHg"
 
 # -----------------------------
 # RCON PERSISTENTE
@@ -95,56 +82,7 @@ def hay_internet():
         return True
     except OSError:
         return False
-# -----------------------------
-# HOLOGRAMA TOP LIKES
-# -----------------------------
-def json_escape(text):
-    return str(text).replace("\\", "\\\\").replace('"', '\\"')
 
-def off_hologram(tag):
-    mc_command(f'kill @e[type=minecraft:armor_stand,tag={tag}]')
-
-def clear_hologram(tag):
-    mc_command(f'kill @e[type=minecraft:armor_stand,tag={tag}]')
-
-def spawn_hologram_line(x, y, z, text, tag, color="white", bold=False):
-    safe_text = json_escape(text)
-    bold_str = "true" if bold else "false"
-
-    mc_command(
-        f'summon minecraft:armor_stand {x} {y} {z} '
-        f'{{Invisible:1b,Marker:1b,NoGravity:1b,Invulnerable:1b,Small:1b,CustomNameVisible:1b,'
-        f'Tags:["{tag}"],'
-        f'CustomName:\'{{"text":"{safe_text}","color":"{color}","bold":{bold_str}}}\'}}'
-    )
-
-def actualizar_toplikes_holograma():
-    clear_hologram(HOLO_TAG_LIKES)
-
-    top = sorted(user_likes.items(), key=lambda x: x[1], reverse=True)[:3]
-
-    linea1 = f"1. {top[0][0]}  {top[0][1]}" if len(top) > 0 else "1. ---  0"
-    linea2 = f"2. {top[1][0]}  {top[1][1]}" if len(top) > 1 else "2. ---  0"
-    linea3 = f"3. {top[2][0]}  {top[2][1]}" if len(top) > 2 else "3. ---  0"
-
-    spawn_hologram_line(HOLO_LIKES_X, HOLO_LIKES_Y, HOLO_LIKES_Z, "TOP LIKES", HOLO_TAG_LIKES, "aqua", True)
-    spawn_hologram_line(HOLO_LIKES_X, HOLO_LIKES_Y - 0.30, HOLO_LIKES_Z, linea1, HOLO_TAG_LIKES, "white", False)
-    spawn_hologram_line(HOLO_LIKES_X, HOLO_LIKES_Y - 0.55, HOLO_LIKES_Z, linea2, HOLO_TAG_LIKES, "white", False)
-    spawn_hologram_line(HOLO_LIKES_X, HOLO_LIKES_Y - 0.80, HOLO_LIKES_Z, linea3, HOLO_TAG_LIKES, "white", False)
-
-def actualizar_topmoney_holograma():
-    clear_hologram(HOLO_TAG_MONEY)
-
-    top = sorted(user_money.items(), key=lambda x: x[1], reverse=True)[:3]
-
-    linea1 = f"1. {top[0][0]}  {top[0][1]}" if len(top) > 0 else "1. ---  0"
-    linea2 = f"2. {top[1][0]}  {top[1][1]}" if len(top) > 1 else "2. ---  0"
-    linea3 = f"3. {top[2][0]}  {top[2][1]}" if len(top) > 2 else "3. ---  0"
-
-    spawn_hologram_line(HOLO_MONEY_X, HOLO_MONEY_Y, HOLO_MONEY_Z, "TOP MONEY", HOLO_TAG_MONEY, "gold", True)
-    spawn_hologram_line(HOLO_MONEY_X, HOLO_MONEY_Y - 0.30, HOLO_MONEY_Z, linea1, HOLO_TAG_MONEY, "white", False)
-    spawn_hologram_line(HOLO_MONEY_X, HOLO_MONEY_Y - 0.55, HOLO_MONEY_Z, linea2, HOLO_TAG_MONEY, "white", False)
-    spawn_hologram_line(HOLO_MONEY_X, HOLO_MONEY_Y - 0.80, HOLO_MONEY_Z, linea3, HOLO_TAG_MONEY, "white", False)
 # -----------------------------
 # VALOR DEL REGALO
 # -----------------------------
@@ -219,7 +157,6 @@ def actualizar_topmoney_sidebar():
 
     top = sorted(user_money.items(), key=lambda x: x[1], reverse=True)[:3]
 
-    nuevas = []
 
     if len(top) > 0:
         nombre1 = limpiar_nombre_scoreboard(top[0][0])
@@ -305,8 +242,8 @@ async def on_connect(event):
     init_topmoney_sidebar()
    # actualizar_topmoney_sidebar()
     actualizar_topmoney_sidebar()
-    actualizar_toplikes_holograma()
-    actualizar_topmoney_holograma()
+    actualizar_toplikes_holograma(mc_command, user_likes)
+    actualizar_topmoney_holograma(mc_command, user_money)
 
 @client.on(CommentEvent)
 async def on_comment(event):
@@ -525,7 +462,7 @@ async def on_gift(event):
         )
     
     actualizar_topmoney_sidebar()
-    actualizar_topmoney_holograma()
+    actualizar_topmoney_holograma(mc_command, user_money)
 
 # HABLA BIENVENIDO AL UNIRSE ALGUIEN
 @client.on(FollowEvent)
@@ -562,7 +499,7 @@ async def on_like(event):
 
     user_likes[user] += event.count
     # actualizar_toplikers_sidebar()
-    actualizar_toplikes_holograma()
+    actualizar_toplikes_holograma(mc_command, user_likes)
 
     ##### v1 *********************************************************
     # SALUDAR SOLO UNA VEZ POR USUARIO

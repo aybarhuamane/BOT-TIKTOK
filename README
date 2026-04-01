@@ -1,11 +1,23 @@
-#BOT-MINECRAFT
+# BOT-MINECRAFT
 
-para que funcuione el server.jar  debe ser el misma version que el minecraft forge  para que funcione en multijuagador
+## UPDATE CODE
+'''  git add .
+    git commit -m "BOT- SEPARACION HOLOGRAMA-V1.0.2"
+    git push
+'''
 
-ejemplo server.jar  1.18.
+## Requisitos
 
+Para que funcione `server.jar`, debe ser de la **misma versión** que Minecraft Forge para que funcione correctamente en multijugador.
 
-***********server.properties**************
+**Ejemplo:**  
+- `server.jar`: 1.18.x  
+- Forge: 1.18.x  
+
+---
+
+## Configuración de `server.properties`
+
 enable-rcon=true
 rcon.password=123456
 rcon.port=25575
