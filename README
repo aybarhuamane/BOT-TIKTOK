@@ -89,4 +89,9 @@ En plugins/WorldGuard/config.yml, cambia esto:t
 
 block-tnt-block-damage: false  a true
 
+
+--- reiniciar con esto
+/wg reload
+
+
 /execute at @e[type=minecraft:iron_golem,limit=1,sort=nearest] run summon minecraft:tnt ~ ~1 ~ {Fuse:1}

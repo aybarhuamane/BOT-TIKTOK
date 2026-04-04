@@ -4,7 +4,7 @@
 from hologramas import actualizar_toplikes_holograma, actualizar_topmoney_holograma
 # libary general
 from TikTokLive import TikTokLiveClient
-from TikTokLive.events import CommentEvent, LikeEvent, GiftEvent, FollowEvent, ConnectEvent
+from TikTokLive.events import CommentEvent, LikeEvent, GiftEvent, FollowEvent, ConnectEvent, ShareEvent
 from mcrcon import MCRcon
 import pyttsx3
 import threading
@@ -254,7 +254,7 @@ async def on_comment(event):
     comment = event.comment
 
     print(f"CHAT -> {user}: {comment}")
-    speak(f"{user} dice {comment[:35]}")
+    speak(f"{user} dice {comment[:70]}")
    
     #####**********************************   TEAM A DEFENSA  *******************************
 
@@ -338,6 +338,29 @@ async def on_comment(event):
     if comment == "c19":
         mc_command(f'summon minecraft:wither {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
 
+
+
+
+
+@client.on(ShareEvent)
+async def on_share(event):
+    if not bot_ready:
+        return
+
+    user = event.user.nickname
+    joined = getattr(event, "users_joined", None)
+
+    print(f"SHARE -> {user} compartió el live | users_joined={joined}")
+    speak(f"Gracias {user} por compartir el directo")
+
+    for i in range(1):
+        mc_command(
+            f'summon minecraft:villager {coord_good} '
+            f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+        )
+
+    mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~')
+
 @client.on(GiftEvent)
 async def on_gift(event):
     global gift_streak_memory
@@ -407,15 +430,23 @@ async def on_gift(event):
             f'summon minecraft:wolf {coord_good} '
             f'{{Owner:"{player}",CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
         )
-    # x2 TNT - 1 coin
+    # x5 TNT - 1 coin
     if "rose" in gift:
-        for i in range(2):
-            x = random.randint(-4, 4)
-            z = random.randint(-4, 4)
+        for i in range(5):
+            x = random.randint(-5, 5)
+            z = random.randint(-5, 5)
             mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~5 ~{z} {{Fuse:80}}')
+
+
     # GOLEN - 1 coin
-    if "it's corn" in gift:
-        mc_command(f'summon minecraft:iron_golem {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
+    if "guardian wings" in gift:
+        for i in range(5):
+            mc_command(f'summon minecraft:iron_golem {coord_centro} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
+            # mc_command(
+            # f'summon minecraft:wither_skeleton {coord_evil} '
+            # f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+            # )
+
 
     # X100 LLUVIA TNT - 100 coin
     if "confeti" in gift:
@@ -454,6 +485,9 @@ async def on_gift(event):
     # BOS WITHER - 500 coin
     if "money gun" in gift:
         mc_command(f'summon minecraft:wither {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
+    if "Rose king" in gift:
+        mc_command(f'summon minecraft:evoker {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
+
     # BOS DRAGON- 1000 coin
     if "leon the kitten" in gift or "Leon the kitten" in gift:
         mc_command(
@@ -474,10 +508,7 @@ async def on_follow(event):
 
     print(f"NUEVO FOLLOW -> {user}")
     speak(f"Bienvenido {user} al directo")
-    mc_command(
-        f'summon minecraft:wither_skeleton {coord_evil} '
-        f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-    )
+    mc_command(f'summon minecraft:iron_golem {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
     mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~2 ~')
 
 # AGREGA EVENTO LIKE
@@ -510,36 +541,51 @@ async def on_like(event):
     # TAP TAP - ENVIA MISIL
     tap_counter += event.count
     tap_double_counter += event.count
-    print(f"TAP TAP TOTAL -> {tap_counter} -> DOBLE: {tap_double_counter}")
+    print(f"TAP TAP TOTAL -> x5 :  {tap_counter} -> x400 : {tap_double_counter}")
 
-    if tap_counter >= 100:
-        speak("Gracias por los likes")
+    if tap_counter >= 50: 
+        speak(f"Gracias por los likes {user} ") # ahora si a corrreeer ")
 
-        # mc_command(
-        #     f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}'
-        # )
-        # CANTODAD DE ZOMBIE GENERADO POR TAP TAP
-        for i in range(2):
+
+        for i in range(5):
+            x = random.randint(-5, 5)
+            z = random.randint(-5, 5)
+ 
             # mc_command(
             #     f'summon minecraft:zombie {coord_evil} '
             #     f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:leather_helmet",Count:1b}}],'
             #     f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
             # )
-              mc_command(
-                f'summon minecraft:zombie {coord_evil} '
+            
+                #f'summon minecraft:zombie {coord_evil} '
+            mc_command(
+                f'execute positioned {coord_centro} run summon minecraft:zombie ~{x} ~5 ~{z} '
                 f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}],'
                 f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
             )
-
+        mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}')
+       # mc_command(f'give {player} minecraft:bow 1')
+       # mc_command(f'give {player} minecraft:arrow 16')
         tap_counter = 0
 
-    if tap_double_counter >= 200: 
-        speak("Gracias por los likes")
-        mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}')
-        mc_command(f'give {player} minecraft:bow 1')
-        mc_command(f'give {player} minecraft:arrow 16')
+    if tap_double_counter >= 500:
+        #speak("Gracias por los likes")
+
+        # mc_command(
+        #     f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}'
+        # )
+        # CANTODAD DE ZOMBIE GENERADO POR TAP TAP
+
+        #mc_command(
+        #    f'summon minecraft:iron_golem {coord_good} '
+        #    f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+        #)           
+
         tap_double_counter = 0
- 
+
+
+
+
     ##### fin v1 *****************************************************
 
 # -----------------------------
