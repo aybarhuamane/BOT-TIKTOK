@@ -1,23 +1,42 @@
 # GAME 1  - MATAR A CREEP
 
 #library personalizada
-from hologramas import actualizar_toplikes_holograma, actualizar_topmoney_holograma
+from hologramas import (
+    actualizar_toplikes_holograma,
+    actualizar_topmoney_holograma,
+    clear_hologram,
+    clear_all_holograms,
+    HOLO_TAG_LIKES,
+    HOLO_TAG_MONEY,
+)
+
+from barralateral import (
+    init_topmoney_sidebar,
+    actualizar_topmoney_sidebar,
+    resolve_gift_value,
+    delete_sidebar
+
+)
+
+
 # libary general
 from TikTokLive import TikTokLiveClient
 from TikTokLive.events import CommentEvent, LikeEvent, GiftEvent, FollowEvent, ConnectEvent, ShareEvent
 from mcrcon import MCRcon
 import pyttsx3
 import threading
-import queue
+from collections import deque
 import asyncio
 import time
 import random
 import socket
-
+import winsound
+import os
+import re # PARA LIMPIAR TEXTO TTS Y EVITAR QUE TRABE CON EMOJIS O SIMBOLOS RAROS
 # -----------------------------
 # CONFIG
 # -----------------------------
-tiktok_user = "masvideos4k"
+tiktok_user = "onxplayer"
 host = "127.0.0.1"
 port = 25575
 password = "paciencia"
@@ -25,7 +44,20 @@ player = "CAPITANCATT"
 tap_counter = 0
 tap_double_counter = 0
 bot_ready = False
-voice_queue = queue.Queue()
+
+# -----------------------------
+# Queue para voz
+# -----------------------------
+VOICE_MAX_QUEUE = 10 # maximos 5 mensajes de cola antiguos
+VOICE_MAX_AGE = 45  # max 30 segundos de espera en la cola para evitar decir cosas irrelevantes
+
+voice_queue = deque()
+voice_lock = threading.Lock()
+voice_event = threading.Event()
+# -----------------------------
+# SALUDOS, LIKES Y DINERO
+# -----------------------------
+
 usuarios_saludados = set()   # GUARDAR PERSONAS A SALUDAR
 user_likes = {}              # GUARDAR LIKES POR USUARIO
 user_money = {}
@@ -33,14 +65,58 @@ gift_streak_memory = {}
 # -----------------------------
 # COORDENADAS
 # -----------------------------
-coord_evil = "559 104 -389"
-coord_good = "559 104 -389"
-coord_centro = "559 104 -389"
+coord_evil = "-132 85 174"
+coord_good = "-132 80 174"
+coord_centro = "-132 80 174"
 
 # coord_evil = "553 107 -404"
 # coord_good = "558 104 -402"
 # coord_centro = "555 102 -402"
 
+# -----------------------------
+# CONFIG ACTIVACION SIDEBAR
+# -----------------------------
+ENABLE_INIT_SIDEBAR = False            # true: activar  | false: desactivar
+ENABLE_REFRESH_SIDEBAR = False          # true: actualizar al recibir regalo | false: no actualizar automáticamente
+
+def init_sidebar_topmoney():
+    if not ENABLE_INIT_SIDEBAR:
+        delete_sidebar(mc_command)
+        return
+    init_topmoney_sidebar(mc_command)
+
+def actualizar_sidebar_topmoney():
+    if not ENABLE_REFRESH_SIDEBAR:
+        return
+    actualizar_topmoney_sidebar(mc_command, user_money)
+
+# -----------------------------
+# CONFIG ACTIVACION HOLOGRAMAS
+# -----------------------------
+ENABLE_HOLOGRAMS = False             # true: activar  | false: desactivar
+ENABLE_HOLOGRAM_TOPLIKES = False     # true: activar  | false: desactivar
+ENABLE_HOLOGRAM_TOPMONEY = False     # true: activar  | false: desactivar
+
+
+def actualizar_holograma_likes():
+    if not ENABLE_HOLOGRAMS:
+        clear_hologram(mc_command, HOLO_TAG_LIKES)
+
+        return
+    if not ENABLE_HOLOGRAMS or not ENABLE_HOLOGRAM_TOPLIKES:
+        return
+
+    actualizar_toplikes_holograma(mc_command, user_likes)
+
+
+def actualizar_holograma_money():
+    if not ENABLE_HOLOGRAMS or not ENABLE_HOLOGRAM_TOPMONEY:
+        clear_hologram(mc_command, HOLO_TAG_MONEY)
+        return
+    if not ENABLE_HOLOGRAM_TOPMONEY:
+        return
+
+    actualizar_topmoney_holograma(mc_command, user_money)
 
 # -----------------------------
 # RCON PERSISTENTE
@@ -71,7 +147,15 @@ def mc_command(cmd):
             pass
         rcon_client = None
         return None
-
+# -----------------------------
+# SONIDO LIKE
+# -----------------------------
+def sonar_like():
+    try:
+        ruta = os.path.join(os.path.dirname(__file__), "sound", "like.wav")
+        winsound.PlaySound(ruta, winsound.SND_FILENAME | winsound.SND_ASYNC)
+    except Exception as e:
+        print(f"Error reproduciendo sonido like: {e}")
 # -----------------------------
 # CHEQUEO DE INTERNET
 # -----------------------------
@@ -83,122 +167,79 @@ def hay_internet():
     except OSError:
         return False
 
-# -----------------------------
-# VALOR DEL REGALO
-# -----------------------------
-def resolve_gift_value(gift_name: str) -> int:
-    if not gift_name:
-        return 0
-    gift = gift_name.lower().strip()
-
-
-    if "big rose" in gift or "rosa grande" in gift:
-        return 10
-    elif "maracas" in gift:
-        return 1
-    elif "rose" in gift:
-        return 1
-    elif "tiktok" in gift:
-        return 1
-    elif "heart me" in gift:
-        return 1
-    elif "it's corn" in gift or "its corn" in gift:
-        return 1
-    elif "rosquilla" in gift:
-        return 5
-    elif "overreact" in gift or "Overreact" in gift:
-        return 5
-    elif "corazon coreano" in gift or "corazón coreano" in gift:
-        return 30
-    elif "confeti" in gift:
-        return 100
-    elif "money gun" in gift:
-        return 500
-    if "lion" in gift or "leon" in gift or "león" in gift:
-        return 1000
-    return 1
-
-# -----------------------------
-# TOP MONEY SIDEBAR
-# -----------------------------
-SIDEBAR_OBJECTIVE = "topMoney"
-last_sidebar_entries = []
-
-def limpiar_nombre_scoreboard(name, max_len=12):
-    safe = str(name).replace('"', "").replace("\\", "").replace("\n", "").replace("\r", "")
-    safe = safe.replace(" ", "_")
-    return safe[:max_len]
-
-def init_topmoney_sidebar():
-    global last_sidebar_entries
-
-    mc_command(f"scoreboard objectives remove {SIDEBAR_OBJECTIVE}")
-    mc_command(f"scoreboard objectives add {SIDEBAR_OBJECTIVE} dummy")
-    mc_command(f"scoreboard objectives setdisplay sidebar {SIDEBAR_OBJECTIVE}")
-
-    # Intento de nombre visible del panel.
-    # Si tu server no lo acepta, no rompe nada importante.
-    mc_command(
-        f'scoreboard objectives modify {SIDEBAR_OBJECTIVE} displayname '
-        f'{{"text":"TOP MONEY","color":"red"}}'
-    )
-
-    last_sidebar_entries = []
-
-
-def actualizar_topmoney_sidebar():
-    global last_sidebar_entries
-
-    mc_command(f"scoreboard objectives setdisplay sidebar {SIDEBAR_OBJECTIVE}")
-
-    # Borra líneas anteriores
-    for entry in last_sidebar_entries:
-        mc_command(f'scoreboard players reset "{entry}" {SIDEBAR_OBJECTIVE}')
-
-    top = sorted(user_money.items(), key=lambda x: x[1], reverse=True)[:3]
-
-
-    if len(top) > 0:
-        nombre1 = limpiar_nombre_scoreboard(top[0][0])
-        money1 = top[0][1]
-        linea1 = f"1_{nombre1}"
-        score1 = money1
-    else:
-        linea1 = "1_"
-        score1 = 0
-
-    if len(top) > 1:
-        nombre2 = limpiar_nombre_scoreboard(top[1][0])
-        money2 = top[1][1]
-        linea2 = f"2_{nombre2}"
-        score2 = money2
-    else:
-        linea2 = "2_"
-        score2 = 0
-
-    if len(top) > 2:
-        nombre3 = limpiar_nombre_scoreboard(top[2][0])
-        money3 = top[2][1]
-        linea3 = f"3_{nombre3}"
-        score3 = money3
-    else:
-        linea3 = "3_"
-        score3 = 0
-
-    mc_command(f'scoreboard players set "{linea1}" {SIDEBAR_OBJECTIVE} {score1}')
-    mc_command(f'scoreboard players set "{linea2}" {SIDEBAR_OBJECTIVE} {score2}')
-    mc_command(f'scoreboard players set "{linea3}" {SIDEBAR_OBJECTIVE} {score3}')
-
-    last_sidebar_entries = [linea1, linea2, linea3]
 
 # -----------------------------
 # VOZ (SISTEMA ANTI-BLOQUEO)
 # -----------------------------
+# -----------------------------
+# VOZ (COLA LIMITADA Y EXPIRACIÓN)
+# -----------------------------
+def limpiar_cola_expirada():
+    ahora = time.time()
+    while voice_queue and (ahora - voice_queue[0][1]) > VOICE_MAX_AGE:
+        texto_expirado, _ = voice_queue.popleft()
+        print(f"DESCARTADO POR TIEMPO -> {texto_expirado}")
+
+# def limpiar_texto_tts(texto):  #V.1.0 - LIMPIA SOLO EMOJIS Y SIMBOLOS RAROS
+#     texto = str(texto)
+#     # quita emojis y símbolos raros que a veces traban el TTS
+#     texto = re.sub(r"[^\w\sáéíóúÁÉÍÓÚñÑ,.!?-]", "", texto)
+#     texto = re.sub(r"\s+", " ", texto).strip()
+#     return texto
+
+def limpiar_texto_tts(texto):  #V.2.0 - LIMPIA EMOJIS, SIMBOLOS RAROS Y UNE LETRAS SEPARADAS (N A T A L I -> NATALI)
+    texto = str(texto)
+
+    # 1) unir letras separadas: N A T A L I -> NATALI
+    texto = re.sub(
+        r'\b(?:[A-Za-zÁÉÍÓÚáéíóúÑñ]\s+){2,}[A-Za-zÁÉÍÓÚáéíóúÑñ]\b',
+        lambda m: m.group(0).replace(" ", ""),
+        texto
+    )
+
+    # 2) borrar palabras que vienen de emojis convertidos a texto
+    palabras_emoji = [
+        "heart", "redheart", "blueheart", "purpleheart", "greenheart",
+        "yellowheart", "blackheart", "whiteheart",
+        "smile", "laugh", "cry", "sob", "fire"
+    ]
+
+    for palabra in palabras_emoji:
+        texto = re.sub(fr'(?:{palabra})+', ' ', texto, flags=re.IGNORECASE)
+
+    # 3) borrar símbolos raros
+    texto = re.sub(r"[^\w\sáéíóúÁÉÍÓÚñÑ,.!?-]", " ", texto)
+
+    # 4) limpiar espacios repetidos
+    texto = re.sub(r"\s+", " ", texto).strip()
+
+    return texto
+
+
+
 def speak_task():
     while True:
-        text = voice_queue.get()
-        if text is None:
-            break
+        voice_event.wait()
+
+        item = None
+
+        with voice_lock:
+            limpiar_cola_expirada()
+
+            if voice_queue:
+                item = voice_queue.popleft()
+
+            if not voice_queue:
+                voice_event.clear()
+
+        if item is None:
+            continue
+
+        text, timestamp = item
+
+        if (time.time() - timestamp) > VOICE_MAX_AGE:
+            print(f"DESCARTADO ANTES DE HABLAR -> {text}")
+            continue
 
         try:
             engine = pyttsx3.init()
@@ -211,20 +252,31 @@ def speak_task():
 
             engine.stop()
             del engine
+
         except Exception as e:
             print(f"Error en motor de voz: {e}")
-        finally:
-            voice_queue.task_done()
 
 threading.Thread(target=speak_task, daemon=True).start()
 
 def speak(text):
-    while not voice_queue.empty():
-        try:
-            voice_queue.get_nowait()
-        except:
-            pass
-    voice_queue.put(text)
+    # == LEE EMOTICONES TAMBIEN ==
+    #text = str(text).strip()
+    # == NO LEE EMOTICONES ==
+    text = limpiar_texto_tts(text)
+    if not text:
+        return
+
+    ahora = time.time()
+
+    with voice_lock:
+        limpiar_cola_expirada()
+
+        while len(voice_queue) >= VOICE_MAX_QUEUE:
+            texto_eliminado, _ = voice_queue.popleft()
+            print(f"COLA LLENA, ELIMINADO -> {texto_eliminado}")
+
+        voice_queue.append((text, ahora))
+        voice_event.set()
 
 # -----------------------------
 # TIKTOK
@@ -239,23 +291,30 @@ async def on_connect(event):
     bot_ready = True
     speak("Bot listo")
 
-    init_topmoney_sidebar()
-   # actualizar_topmoney_sidebar()
-    actualizar_topmoney_sidebar()
-    actualizar_toplikes_holograma(mc_command, user_likes)
-    actualizar_topmoney_holograma(mc_command, user_money)
+    init_sidebar_topmoney()
+    actualizar_sidebar_topmoney()
+    actualizar_holograma_likes()
+    actualizar_holograma_money()
 
 @client.on(CommentEvent)
 async def on_comment(event):
     if not bot_ready:
         return
+    # == LEE EMOTICONES TAMBIEN ==
+    # user = event.user.nickname  
+    # comment = event.comment
+    # == NO LEE EMOTICONES ==
 
-    user = event.user.nickname
-    comment = event.comment
+    user = limpiar_texto_tts(event.user.nickname)
+    comment = limpiar_texto_tts(event.comment)
 
-    print(f"CHAT -> {user}: {comment}")
-    speak(f"{user} dice {comment[:70]}")
-   
+    print(f"RAW CHAT -> {event.user.nickname}: {event.comment}")
+    print(f"CHAT LIMPIO -> {user}: {comment}")
+    #print(f"CHAT -> {user}: {comment}")
+    if user== "One player":
+        speak(f"El anfitrion dice {comment[:100]}")
+    else:
+        speak(f"{user} dice {comment[:80]}")
     #####**********************************   TEAM A DEFENSA  *******************************
 
     # LOBO - 1 coin
@@ -337,10 +396,15 @@ async def on_comment(event):
     # BOS WITHER - 500 coin
     if comment == "c19":
         mc_command(f'summon minecraft:wither {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-
-
-
-
+    if comment == "c20":
+        mc_command(f'summon minecraft:warden {coord_evil}')
+    if comment == "c21":
+        user_esc = user.replace("\\", "\\\\").replace('"', '\\"')
+        mc_command(
+            f'summon minecraft:warden {coord_evil} '
+            f'{{CustomName:\'{{"text":"{user_esc}"}}\',CustomNameVisible:1b,'
+            f'Brain:{{memories:{{"minecraft:dig_cooldown":{{value:{{}},ttl:1200L}}}}}}}}'
+        )
 
 @client.on(ShareEvent)
 async def on_share(event):
@@ -353,11 +417,10 @@ async def on_share(event):
     print(f"SHARE -> {user} compartió el live | users_joined={joined}")
     speak(f"Gracias {user} por compartir el directo")
 
-    for i in range(1):
-        mc_command(
-            f'summon minecraft:villager {coord_good} '
-            f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-        )
+    mc_command(
+        f'summon minecraft:villager {coord_good} '
+        f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+    )
 
     mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~')
 
@@ -368,8 +431,8 @@ async def on_gift(event):
         return
 
     # Ignorar eventos duplicados de streak
-    if event.gift.streakable and not event.streaking:
-        return
+    # if event.gift.streakable and not event.streaking:
+    #     return
 
     user = event.user.nickname
     user_id = getattr(event.user, "unique_id", user)
@@ -385,6 +448,15 @@ async def on_gift(event):
 
     # if event.gift.streakable and not event.streaking:  #ANTIGUO
     #     return
+
+    print("========== GIFT DEBUG ==========")
+    print(f"user         : {user}")
+    print(f"gift_raw     : {gift_raw}")
+    print(f"gift_lower   : {gift}")
+    print(f"streakable   : {event.gift.streakable}")
+    print(f"streaking    : {getattr(event, 'streaking', None)}")
+    print(f"repeat_count : {repeat_count}")
+    print("================================")
 
 # AGREGADO  ------------------------
     if event.gift.streakable:
@@ -421,7 +493,6 @@ async def on_gift(event):
     speak(f"Gracias {user} por el regalo")
 
 
-
     #####**********************************   TEAM A DEFENSA  *******************************
 
     # LOBO - 1 coin
@@ -433,38 +504,37 @@ async def on_gift(event):
     # x5 TNT - 1 coin
     if "rose" in gift:
         for i in range(5):
-            x = random.randint(-5, 5)
-            z = random.randint(-5, 5)
-            mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~5 ~{z} {{Fuse:80}}')
+            x = random.randint(-6, 6)
+            z = random.randint(-6, 6)
+            mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~6 ~{z} {{Fuse:80}}')
 
 
     # GOLEN - 1 coin
+
     if "guardian wings" in gift:
         for i in range(5):
-            mc_command(f'summon minecraft:iron_golem {coord_centro} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-            # mc_command(
-            # f'summon minecraft:wither_skeleton {coord_evil} '
-            # f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-            # )
+            x = random.randint(-5, 5)
+            z = random.randint(-5, 5)
+            mc_command(f'execute positioned {coord_centro} run summon minecraft:iron_golem ~{x} ~5 ~{z} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
 
 
     # X100 LLUVIA TNT - 100 coin
     if "confeti" in gift:
         for i in range(100):
-            x = random.randint(-5, 5)
-            z = random.randint(-5, 5)
-            mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~5 ~{z} {{Fuse:80}}')
+            x = random.randint(-7, 7)
+            z = random.randint(-7, 7)
+            mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~6 ~{z} {{Fuse:80}}')
 
     #####**********************************   TEAM B ZOMBIE  *******************************
 
     # CHANCHO- 1 coin
     if "tiktok" in gift:
         for i in range(5):
+            x = random.randint(-5, 5)
+            z = random.randint(-5, 5)
             mc_command(
-            # f'summon minecraft:zombie {coord_evil} '
-            # f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}],'
-            # f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-            f'summon minecraft:zombified_piglin {coord_evil} '
+            f'execute positioned {coord_evil} run summon minecraft:zombified_piglin ~{x} ~5 ~{z}'
+            # f'summon minecraft:zombified_piglin {coord_evil} '
             f'{{HandItems:[{{id:"minecraft:golden_sword",Count:1b}},{{}}],'
             f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
             )
@@ -478,14 +548,27 @@ async def on_gift(event):
         for i in range(20):
             mc_command(f'summon minecraft:witch {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
 
-    # CREEPER EXPLOSIVO - 30 coin
-    if "corazon coreano" in gift or "corazón coreano" in gift:
+    # CREEPER EXPLOSIVO - 30 coin  corazon coreano
+    if "finger heart" in gift:
     #    mc_command(f'give {player} minecraft:enchanted_golden_apple 5')
-        mc_command(f'summon minecraft:ravager {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-    # BOS WITHER - 500 coin
+        for i in range(10):
+            x = random.randint(-5, 5)
+            z = random.randint(-5, 5)    
+            mc_command(f'execute positioned {coord_evil} run summon minecraft:ravager ~{x} ~5 ~{z} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
     if "money gun" in gift:
         mc_command(f'summon minecraft:wither {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-    if "Rose king" in gift:
+    if "rose king" in gift or "big rose" in gift:
+        mc_command(f'summon minecraft:evoker {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
+
+    if "creeper" in gift:
+        user_esc = user.replace("\\", "\\\\").replace('"', '\\"')
+        mc_command(
+            f'summon minecraft:warden {coord_evil} '
+            f'{{CustomName:\'{{"text":"{user_esc}"}}\',CustomNameVisible:1b,'
+            f'Brain:{{memories:{{"minecraft:dig_cooldown":{{value:{{}},ttl:1200L}}}}}}}}'
+        )
+
+    if "rose king" in gift or "big rose" in gift:
         mc_command(f'summon minecraft:evoker {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
 
     # BOS DRAGON- 1000 coin
@@ -495,8 +578,8 @@ async def on_gift(event):
             f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
         )
     
-    actualizar_topmoney_sidebar()
-    actualizar_topmoney_holograma(mc_command, user_money)
+    actualizar_topmoney_sidebar(mc_command, user_money)
+    actualizar_holograma_money()
 
 # HABLA BIENVENIDO AL UNIRSE ALGUIEN
 @client.on(FollowEvent)
@@ -508,6 +591,7 @@ async def on_follow(event):
 
     print(f"NUEVO FOLLOW -> {user}")
     speak(f"Bienvenido {user} al directo")
+    #mc_command(f'summon minecraft:iron_golem {coord_good}')
     mc_command(f'summon minecraft:iron_golem {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
     mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~2 ~')
 
@@ -530,7 +614,7 @@ async def on_like(event):
 
     user_likes[user] += event.count
     # actualizar_toplikers_sidebar()
-    actualizar_toplikes_holograma(mc_command, user_likes)
+    actualizar_holograma_likes()
 
     ##### v1 *********************************************************
     # SALUDAR SOLO UNA VEZ POR USUARIO
@@ -544,9 +628,8 @@ async def on_like(event):
     print(f"TAP TAP TOTAL -> x5 :  {tap_counter} -> x400 : {tap_double_counter}")
 
     if tap_counter >= 50: 
+        sonar_like()
         speak(f"Gracias por los likes {user} ") # ahora si a corrreeer ")
-
-
         for i in range(5):
             x = random.randint(-5, 5)
             z = random.randint(-5, 5)
@@ -560,28 +643,28 @@ async def on_like(event):
                 #f'summon minecraft:zombie {coord_evil} '
             mc_command(
                 f'execute positioned {coord_centro} run summon minecraft:zombie ~{x} ~5 ~{z} '
-                f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}],'
-                f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+                f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}]}}'
+                #f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
             )
         mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}')
        # mc_command(f'give {player} minecraft:bow 1')
        # mc_command(f'give {player} minecraft:arrow 16')
         tap_counter = 0
 
-    if tap_double_counter >= 500:
-        #speak("Gracias por los likes")
+    # if tap_double_counter >= 500:
+    #     speak("Gracias por los likes")
 
-        # mc_command(
-        #     f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}'
-        # )
-        # CANTODAD DE ZOMBIE GENERADO POR TAP TAP
+    #     mc_command(
+    #         f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}'
+    #     )
+    #     CANTODAD DE ZOMBIE GENERADO POR TAP TAP
 
-        #mc_command(
-        #    f'summon minecraft:iron_golem {coord_good} '
-        #    f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-        #)           
+    #     mc_command(
+    #        f'summon minecraft:iron_golem {coord_good} '
+    #        f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+    #     )           
 
-        tap_double_counter = 0
+    #     tap_double_counter = 0
 
 
 

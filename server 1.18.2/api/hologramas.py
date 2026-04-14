@@ -2,7 +2,7 @@
 # HOLOGRAMA TOP LIKES
 # -----------------------------
 HOLO_LIKES_X = 559
-HOLO_LIKES_Y = 1088
+HOLO_LIKES_Y = 108
 HOLO_LIKES_Z = -385
 HOLO_TAG_LIKES = "topLikesHg"
 
@@ -10,7 +10,7 @@ HOLO_TAG_LIKES = "topLikesHg"
 # HOLOGRAMA TOP MONEY
 # -----------------------------
 HOLO_MONEY_X = 559
-HOLO_MONEY_Y = 1099
+HOLO_MONEY_Y = 109
 HOLO_MONEY_Z = -385
 HOLO_TAG_MONEY = "topMoneyHg"
 
