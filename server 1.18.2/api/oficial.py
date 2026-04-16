@@ -209,7 +209,19 @@ def limpiar_texto_tts(texto):
 
     return texto
 
+# LIMPIA USER MINECAFT PARA LA INVOCACION DE MODS
 
+def limpiar_user_mc(user):
+    user = str(user)
+
+    # solo letras, números y _
+    user = re.sub(r"[^a-zA-Z0-9_]", "", user)
+
+    # evitar vacío
+    if user == "":
+        user = "anon"
+
+    return user
 
 
 def speak_task():
@@ -393,8 +405,13 @@ async def on_comment(event):
     # BOS WITHER - 500 coin
     if comment == "c19":
         mc_command(f'summon minecraft:wither {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-    if comment == "c20":
-        mc_command(f'summon minecraft:warden {coord_evil}')
+    if comment == "ayudeeenn":
+        for i in range(5):
+            mc_command(f'summon minecraft:warden {coord_evil} {{CustomName:\'{{"text":"Anfitrio"}}\',"CustomNameVisible":1b}}')
+    if comment == "ayudeeennxd":
+        for i in range(10):
+            mc_command(f'summon minecraft:warden {coord_evil} {{CustomName:\'{{"text":"Anfitrio"}}\',"CustomNameVisible":1b}}')
+       
     if comment == "c21":
         user_esc = user.replace("\\", "\\\\").replace('"', '\\"')
         mc_command(
@@ -402,6 +419,17 @@ async def on_comment(event):
             f'{{CustomName:\'{{"text":"{user_esc}"}}\',CustomNameVisible:1b,'
             f'Brain:{{memories:{{"minecraft:dig_cooldown":{{value:{{}},ttl:1200L}}}}}}}}'
         )
+    if comment == "c22":
+        for i in range(30):
+            x = random.randint(-5, 5)
+            z = random.randint(-5, 5)
+            mc_command(
+                f'execute positioned {coord_centro} run summon minecraft:zombie ~{x} ~5 ~{z} '
+                f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}],'
+                f'CustomName:\'{{"text":"ADMIN"}}\',CustomNameVisible:1b}}'
+            )
+
+
 
 @client.on(ShareEvent)
 async def on_share(event):
@@ -645,12 +673,17 @@ async def on_like(event):
             # )
             
                 #f'summon minecraft:zombie {coord_evil} '
+            user_clean = limpiar_user_mc(user)
+            #print(f"ID TAG: owner_{user_clean}")
             mc_command(
                 f'execute positioned {coord_centro} run summon minecraft:zombie ~{x} ~5 ~{z} '
-                f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}]}}'
-                #f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+                f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}],'
+               # f'Tags:["owner_{user_clean}"]}}'            
+                f'CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
             )
-        mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}')
+        #==== efecto  al invocar ==
+        #mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}')
+     
        # mc_command(f'give {player} minecraft:bow 1')
        # mc_command(f'give {player} minecraft:arrow 16')
         tap_counter = 0
