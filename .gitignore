@@ -8,6 +8,7 @@
 !server 1.19.4/server.properties
 !server 1.19.4/
 !server 1.19.4/README.md
+!server 1.19.4/plugins/
 !server 1.19.4/plugins/Skript/arena.sk
 !server 1.19.4/plugins/Skript/backup.sk
 !server 1.19.4/plugins/Skript/limpirchat.sk
