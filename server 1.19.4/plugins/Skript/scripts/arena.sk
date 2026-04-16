@@ -52,8 +52,7 @@ on death of iron golem:
     broadcast "&eGolems restantes: %{_golems}%"
 
     if {_golems} is 0:
-      # stop 
-
+    
     # ✅ SOLO SI ES EL ÚLTIMO
         if {lastHit.%uuid of victim%} is set:
             set {_owner} to {lastHit.%uuid of victim%}
