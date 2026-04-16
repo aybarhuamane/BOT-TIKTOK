@@ -1,0 +1,311 @@
+options:
+    arenaX: -134
+    arenaY: 84
+    arenaZ: 174
+    arenaTNT:81
+    arenaXX: -135
+    arenaYY: 83
+    arenaZZ: 172
+    radio: 40
+    radio2: 20    
+    mundo: "world"
+    tiempo_pelea: 1800 # 5 minutos
+    numero_golen: 4
+    numero_tnt: 1
+
+variables:
+    {wins} = 0
+    {losses} = 0
+    {top1_name} = "Nadie"
+    {top1_points} = 0
+    {arena_activa} = false
+on load:
+    set {arena_activa} to false
+    set {arena2.activa} to false
+    set {arena2.countdown} to false
+    set {arena2.tiempo} to 20
+    delete {arena2.owner}
+
+    set {_golems} to 0
+    delete {lastHit::*}
+    delete {arena2.ganador}
+
+on damage of iron golem:
+    attacker is a zombie
+    set {lastHit.%uuid of victim%} to name of attacker
+    #set {lastHit.%uuid of victim%} to "%attacker%"
+
+
+on death of iron golem:
+    set {_loc} to location({@arenaX}, {@arenaY}, {@arenaZ}, world({@mundo}))
+    set {_golems} to 0
+
+    loop all iron golems in radius {@radio2} around {_loc}:
+        add 1 to {_golems}   # SUMA +1 GOLEN CON CUALQUIER NOMBRE
+        
+        # ==== SI SE QUIERE CONSIDERAR QUE EL NOMBRE DEL GOLEN SEA SOLO ANFITRION
+        #if name of loop-entity is "Anfitrion":
+        #    add 1 to {_golems}
+   
+    remove 1 from {_golems}  # ES COMO HACER UN -1
+    limpiar_chat()
+    broadcast "&eGolems restantes: %{_golems}%"
+
+    if {_golems} is 0:
+      # stop 
+
+    # ✅ SOLO SI ES EL ÚLTIMO
+        if {lastHit.%uuid of victim%} is set:
+            set {_owner} to {lastHit.%uuid of victim%}
+
+            # ✅ GUARDAR GANADOR
+            set {arena2.ganador} to {_owner}
+            
+            broadcast "&aWIN FINAL: %{_owner}% destruyo el ultimo golem"
+
+            #send title "&a&lWIN" with subtitle "&f%{_owner}% es el ganador" to all players for 2 seconds
+            #send action bar "&6🏆 %{_owner}% ganó la ronda" to all players
+
+            delete {lastHit.%uuid of victim%}
+
+            stop
+
+        broadcast "&cMurió sin owner válido"    
+
+function limpiar_arena():
+    # MINICARD  = VAGON ,  ARMOR_STAND = HOLOGRAMA
+    make console execute command "kill @e[x={@arenaX},y={@arenaY},z={@arenaZ},distance=..{@radio},type=!player,type=!minecart,type=!armor_stand]"
+    wait 1 tick
+    broadcast "&c&lTodas las criaturas de la arena fueron eliminadas."
+
+
+function invocar():
+    execute console command "summon minecraft:iron_golem {@arenaX} {@arenaY} {@arenaZ} {CustomName:'{""text"":""Anfitrion""}',CustomNameVisible:1b}"
+    #loop 5 times:
+    #    execute console command "summon minecraft:iron_golem {@arenaX} {@arenaY} {@arenaZ} {CustomName:'{""text"":""Sabias que?""}',CustomNameVisible:1b}"
+    #wait 1 tick
+
+
+
+function restaurar_arena():
+    execute console command "campo restaurar"
+    broadcast "&c&lCampo restaurado."
+    wait 1 tick
+
+function limpiar_chat():
+    execute console command "limpiarchat"
+    wait 1 tick
+
+function lluvia_tnt():
+    loop {@numero_tnt} times:   # Antes era 15
+        set {_x} to {@arenaX}
+        set {_z} to {@arenaZ}
+        add random integer between -6 and 6 to {_x}
+        add random integer between -6 and 6 to {_z}
+        execute console command "summon minecraft:tnt %{_x}% {@arenaTNT} %{_z}% {Fuse:120}"
+        wait 2 ticks 
+
+command /limpiararena:
+    permission: op
+    trigger:
+        limpiar_arena()
+        execute console command "tp %player% {@arenaXX} {@arenaYY} {@arenaZZ}"
+        
+
+function hay_golem_arena2() :: boolean:
+    set {_loc} to location({@arenaX}, {@arenaY}, {@arenaZ}, world({@mundo}))
+    loop all iron golems in radius {@radio2} around {_loc}:
+        return true
+    return false
+
+function hay_zombies_arena2() :: boolean:
+    set {_loc} to location({@arenaX}, {@arenaY}, {@arenaZ}, world({@mundo}))
+    loop all zombies in radius {@radio2} around {_loc}:
+        return true
+    return false
+
+command /arena1 <text>:
+    description: Control principal de la arena
+    permission: op
+    trigger:
+        if arg-1 is "start":    
+            if {arena_activa} is true:
+                send "&c⚠ El sistema ya está funcionando."
+                stop
+
+            set {arena_activa} to true
+            broadcast "&a&l▶ SISTEMA DE ARENA INICIADO (Modo Automático)"
+            # BUCLE INFINITO
+            while {arena_activa} is true:
+                broadcast "&6⚔ ¡NUEVA RONDA! Invoquen a las bestias..."
+                play sound "entity.ender_dragon.growl" with volume 1 and pitch 1 to all players
+                set {_tiempo} to {@tiempo_pelea}
+                # --- CRONÓMETRO ---
+                loop {@tiempo_pelea} times:
+                    if {arena_activa} is false:
+                        stop
+                    set {_color} to "&a&l"
+                    if {_tiempo} <= 60:
+                        set {_color} to "&e&l"
+                    if {_tiempo} <= 10:
+                        set {_color} to "&c&l"
+                        send title "%{_color}%%{_tiempo}%" with subtitle "&e¡QUEDA POCO!" to all players for 1 second
+                        play sound "block.note_block.bit" with volume 0.5 and pitch 2 to all players
+                    send action bar "&aWINS: %{wins}% &7| %{_color}%⌛ %{_tiempo}%s &7| &cLOSSES: %{losses}%" to all players
+                    remove 1 from {_tiempo}
+                    wait 1 second
+
+                # --- CHEQUEO DE RESULTADO ---
+                set {_loc} to location({@arenaX}, {@arenaY}, {@arenaZ}, world({@mundo}))
+                set {_enemigos} to 0
+                loop all entities in radius {@radio} around {_loc}:
+                    if loop-entity is a zombie, skeleton, creeper, spider, wither, enderman, witch, ravager or iron golem:
+                        add 1 to {_enemigos}
+                if {_enemigos} is 0:
+                    add 1 to {wins}
+                    send title "&a&l¡WIN!" with subtitle "&f¡Arena despejada!" to all players for 5 seconds
+                    broadcast "&a&l¡VICTORIA! &7Marcador: &a%{wins}%W &7- &c%{losses}%L"
+                    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to all players
+                else:
+                    add 1 to {losses}
+                    send title "&c&l¡LOSER!" with subtitle "&fQuedaron %{_enemigos}% bestias" to all players for 5 seconds
+                    broadcast "&c&l¡DERROTA! &7Marcador: &a%{wins}%W &7- &c%{losses}%L"
+                    play sound "entity.wither.spawn" with volume 1 and pitch 0.5 to all players
+                wait 5 seconds # Pausa para ver el resultado
+                # --- REINICIO Y LIMPIEZA ---
+                loop 10 times:
+                    if {arena_activa} is false:
+                        stop
+                    set {_n} to 11 - loop-value
+                    send title "&e&lREINICIANDO..." with subtitle "&fLa arena se limpiará en %{_n}%" to all players for 1 second
+                    wait 1 second
+                make console execute command "kill @e[x={@arenaX},y={@arenaY},z={@arenaZ},distance=..{@radio},type=!player]"
+                broadcast "&6✨ Limpieza completada. Preparando siguiente ronda..."
+                wait 3 seconds
+                # El "while" hará que todo esto vuelva a empezar desde arriba
+            stop
+        else if arg-1 is "stop": 
+            set {arena_activa} to false
+            broadcast "&c&l■ SISTEMA DE ARENA DETENIDO POR EL ADMIN."
+            send title "&c&lSISTEMA OFF" to all players for 3 seconds
+            stop
+        else if arg-1 is "resetscore": 
+            set {wins} to 0
+            set {losses} to 0
+            send "&ePuntuaciones reiniciadas."
+            stop
+        else:
+            send "&cUso: /arena <start|stop|resetscore>"
+
+#---------------------------------------- GAME 2 ------------------------
+
+command /arena2 <text>:
+    description: Arena modo 2
+    permission: op
+    trigger:
+        if arg-1 is "start":
+            if {arena_activa} is true:
+                send "&cPrimero detén arena1 con /arena1 stop"
+                stop
+
+            if {arena2.activa} is true:
+                send "&c⚠ Arena2 ya está activa."
+                stop
+
+            set {arena2.activa} to true
+            set {arena2.countdown} to false
+            set {arena2.tiempo} to 20
+            set {arena2.owner} to player
+            
+            set {_golems} to 0
+            delete {lastHit::*}
+            delete {arena2.ganador}
+
+            #limpiar_arena()  #desactivado temporalmente
+            broadcast "&b&l▶ ARENA 2 INICIADA"
+            send title "&b&lARENA 2" with subtitle "&fMaten al iron golem" to all players for 3 seconds
+            # --- RESTAURAMOS BLOQUES ------
+            restaurar_arena()
+            stop
+
+        else if arg-1 is "stop":
+            set {arena2.activa} to false
+            set {arena2.countdown} to false
+            set {arena2.tiempo} to 20
+            delete {arena2.owner}
+            broadcast "&c&l■ ARENA 2 DETENIDA."
+            send title "&c&lARENA 2 OFF" to all players for 3 seconds
+            stop
+        else if arg-1 is "limpiar":
+            make console execute command "kill @e[x={@arenaX},y={@arenaY},z={@arenaZ},distance=..{@radio},type=!player,type=!minecart,type=!armor_stand]"
+            broadcast "&c&lTodas las criaturas de la arena fueron eliminadas."
+            stop
+ 
+        else if arg-1 is "restaurar":
+            restaurar_arena()
+            execute console command "tp %player% {@arenaXX} {@arenaYY} {@arenaZZ}"
+            stop
+        else if arg-1 is "invocar":
+            invocar()
+            stop
+        else:
+            send "&cUso: /arena2 <start| stop | invocar |limpiar | restaurar >"
+
+
+
+
+every 1 second:
+    if {arena2.activa} is true:
+        if hay_golem_arena2() is true:
+            if {arena2.countdown} is true:
+                set {arena2.countdown} to false
+                set {arena2.tiempo} to 25
+                broadcast "&a&lCUENTA CANCELADA &f- apareció otro iron golem."
+                play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to all players
+
+            send action bar "&b&lARENA2 &7| &fTeam Golem vs Team Zombie" to all players
+            #send action bar "&b&lARENA2 &7| &fEl iron golem sigue vivo" to all players
+        else:
+            if {arena2.countdown} is false:
+                set {arena2.countdown} to true
+                set {arena2.tiempo} to 25
+                broadcast "&e&l¡MATARON AL IRON GOLEM! &fTienen 25 segundos para invocar otro."
+                play sound "entity.warden.warning" with volume 1 and pitch 1 to all players
+            else:
+                if {arena2.tiempo} <= 0:
+                    add 1 to {losses}
+                    set {arena2.countdown} to false
+                    set {arena2.tiempo} to 25
+
+                    # PONER NOMBRE AL GANADOR     
+                    set {_ganador} to {arena2.ganador}
+                    if {_ganador} is not set:
+                        set {_ganador} to "Al Anfitrion"
+    
+                    send title "&a&lGANASTES" with subtitle "&f%{_ganador}%" to all players for 3 seconds
+                    broadcast "&6GANADOR: %{_ganador}%"
+                    delete {arena2.ganador}
+                    
+                    # FIN DE PONER NOMBRE AL GANADOR
+
+                    #send title "&c&lGANASTES" with subtitle "&fNadie invocó otro iron golem" to all players for 3 seconds
+                    #broadcast "&c&lLOSER &f- se acabó el tiempo."
+                    play sound "entity.wither.spawn" with volume 1 and pitch 0.5 to all players
+
+                    #limpiar_arena()     #- Se ha quitado para continuar con el juego
+                    #restaurar_arena()   #- Se ha quitado para continuar con el juego
+                    if {arena2.owner} is set:
+                        execute console command "tp %{arena2.owner}% {@arenaXX} {@arenaYY} {@arenaZZ}"
+
+                    loop {@numero_golen} times:
+                        invocar()
+                    limpiar_chat()
+                    stop
+
+                if {arena2.tiempo} is 6:
+                    broadcast "&4&l¡LLUVIA TNT!"
+                    lluvia_tnt()
+
+                send title "&c&l%{arena2.tiempo}%" with subtitle "&fInvoca otro GOLEM para continuar" to all players for 1 second
+                #send action bar "&cInvoca otro iron golem en %{arena2.tiempo}%s" to all players
+                remove 1 from {arena2.tiempo}
