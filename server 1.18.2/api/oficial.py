@@ -65,7 +65,7 @@ gift_streak_memory = {}
 # -----------------------------
 # COORDENADAS
 # -----------------------------
-coord_evil = "-132 85 174"
+coord_evil = "-132 80 174"
 coord_good = "-132 80 174"
 coord_centro = "-132 80 174"
 
@@ -187,33 +187,28 @@ def limpiar_cola_expirada():
 #     texto = re.sub(r"\s+", " ", texto).strip()
 #     return texto
 
-def limpiar_texto_tts(texto):  #V.2.0 - LIMPIA EMOJIS, SIMBOLOS RAROS Y UNE LETRAS SEPARADAS (N A T A L I -> NATALI)
+
+def limpiar_texto_tts(texto):
     texto = str(texto)
 
-    # 1) unir letras separadas: N A T A L I -> NATALI
+    # unir letras separadas: H O L A -> HOLA / Q U E T A L -> QUETAL
     texto = re.sub(
         r'\b(?:[A-Za-zÁÉÍÓÚáéíóúÑñ]\s+){2,}[A-Za-zÁÉÍÓÚáéíóúÑñ]\b',
         lambda m: m.group(0).replace(" ", ""),
         texto
     )
 
-    # 2) borrar palabras que vienen de emojis convertidos a texto
-    palabras_emoji = [
-        "heart", "redheart", "blueheart", "purpleheart", "greenheart",
-        "yellowheart", "blackheart", "whiteheart",
-        "smile", "laugh", "cry", "sob", "fire"
-    ]
+    # quitar guion suelto al final: K A T I - -> KATI
+    texto = re.sub(r"\s*-\s*$", "", texto)
 
-    for palabra in palabras_emoji:
-        texto = re.sub(fr'(?:{palabra})+', ' ', texto, flags=re.IGNORECASE)
+    # quitar símbolos raros
+    texto = re.sub(r"[^\w\sáéíóúÁÉÍÓÚñÑ,.!?-]", "", texto)
 
-    # 3) borrar símbolos raros
-    texto = re.sub(r"[^\w\sáéíóúÁÉÍÓÚñÑ,.!?-]", " ", texto)
-
-    # 4) limpiar espacios repetidos
+    # limpiar espacios repetidos
     texto = re.sub(r"\s+", " ", texto).strip()
 
     return texto
+
 
 
 
@@ -260,11 +255,11 @@ threading.Thread(target=speak_task, daemon=True).start()
 
 def speak(text):
     # == LEE EMOTICONES TAMBIEN ==
-    #text = str(text).strip()
+    text = str(text).strip()
     # == NO LEE EMOTICONES ==
-    text = limpiar_texto_tts(text)
-    if not text:
-        return
+    #text = limpiar_texto_tts(text)
+    # if not text:
+    #     return
 
     ahora = time.time()
 
@@ -301,26 +296,28 @@ async def on_comment(event):
     if not bot_ready:
         return
     # == LEE EMOTICONES TAMBIEN ==
-    # user = event.user.nickname  
-    # comment = event.comment
+    user = event.user.nickname
+    user_tts = limpiar_texto_tts(user)   # solo para voz del nombre
+    comment = event.comment                              # comentario intacto
+
+
+    print(f"CHAT -> {user} | USER_LIMPIO: {user_tts} : {comment} ")
     # == NO LEE EMOTICONES ==
 
-    user = limpiar_texto_tts(event.user.nickname)
-    comment = limpiar_texto_tts(event.comment)
-
-    print(f"RAW CHAT -> {event.user.nickname}: {event.comment}")
-    print(f"CHAT LIMPIO -> {user}: {comment}")
+    # user = limpiar_texto_tts(event.user.nickname)
+    # comment = limpiar_texto_tts(event.comment)
     #print(f"CHAT -> {user}: {comment}")
+    
     if user== "One player":
         speak(f"El anfitrion dice {comment[:100]}")
     else:
-        speak(f"{user} dice {comment[:80]}")
+        speak(f"{user_tts} dice {comment[:80]}")
     #####**********************************   TEAM A DEFENSA  *******************************
 
     # LOBO - 1 coin
 
     if comment == "hola" or comment == "Hola" or comment == "HOLA" or comment == "buenas" or comment == "ola":
-        speak(f" Hola {user} bienvenido al directo")
+        speak(f" Hola {user_tts} bienvenido al directo")
 
     if comment == "c12":
         mc_command(f'summon minecraft:wolf {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
@@ -412,6 +409,7 @@ async def on_share(event):
         return
 
     user = event.user.nickname
+    user_tts = limpiar_texto_tts(user)
     joined = getattr(event, "users_joined", None)
 
     print(f"SHARE -> {user} compartió el live | users_joined={joined}")
@@ -431,10 +429,11 @@ async def on_gift(event):
         return
 
     # Ignorar eventos duplicados de streak
-    # if event.gift.streakable and not event.streaking:
-    #     return
+    if event.gift.streakable and not event.streaking:
+        return
 
     user = event.user.nickname
+    user_tts = limpiar_texto_tts(user)
     user_id = getattr(event.user, "unique_id", user)
     gift_raw = event.gift.name
     gift = gift_raw.lower().strip()
@@ -457,6 +456,7 @@ async def on_gift(event):
     print(f"streaking    : {getattr(event, 'streaking', None)}")
     print(f"repeat_count : {repeat_count}")
     print("================================")
+
 
 # AGREGADO  ------------------------
     if event.gift.streakable:
@@ -490,7 +490,7 @@ async def on_gift(event):
     if gift_value == 0:
         print(f"[AVISO] Regalo no mapeado en resolve_gift_value(): '{gift_raw}'")
 
-    speak(f"Gracias {user} por el regalo")
+    speak(f"Gracias {user_tts} por el regalo")  #ANTES ERA USER
 
 
     #####**********************************   TEAM A DEFENSA  *******************************
@@ -527,16 +527,19 @@ async def on_gift(event):
 
     #####**********************************   TEAM B ZOMBIE  *******************************
 
-    # CHANCHO- 1 coin
+        # CHANCHO- 1 coin
     if "tiktok" in gift:
         for i in range(5):
             x = random.randint(-5, 5)
             z = random.randint(-5, 5)
+            #mc_command(
+            #    f'summon minecraft:piglin {coord_evil} '
+            #    f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+            #)
             mc_command(
-            f'execute positioned {coord_evil} run summon minecraft:zombified_piglin ~{x} ~5 ~{z}'
-            # f'summon minecraft:zombified_piglin {coord_evil} '
-            f'{{HandItems:[{{id:"minecraft:golden_sword",Count:1b}},{{}}],'
-            f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+                f'execute positioned {coord_evil} run summon minecraft:zombified_piglin ~{x} ~5 ~{z} '
+                f'{{HandItems:[{{id:"minecraft:golden_sword",Count:1b}},{{}}],'
+                f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
             )
 
     # SKELETON  - 5 coin
@@ -588,9 +591,10 @@ async def on_follow(event):
         return
 
     user = event.user.nickname
+    user_tts = limpiar_texto_tts(user)
 
     print(f"NUEVO FOLLOW -> {user}")
-    speak(f"Bienvenido {user} al directo")
+    speak(f"Bienvenido {user_tts} al directo")
     #mc_command(f'summon minecraft:iron_golem {coord_good}')
     mc_command(f'summon minecraft:iron_golem {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
     mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~2 ~')
@@ -605,7 +609,7 @@ async def on_like(event):
         return
 
     user = event.user.nickname
-
+    user_tts = limpiar_texto_tts(user)
     # -----------------------------
     # TOP LIKERS
     # -----------------------------
@@ -629,7 +633,7 @@ async def on_like(event):
 
     if tap_counter >= 50: 
         sonar_like()
-        speak(f"Gracias por los likes {user} ") # ahora si a corrreeer ")
+        speak(f"Gracias por los likes {user_tts} ") # ahora si a corrreeer ")
         for i in range(5):
             x = random.randint(-5, 5)
             z = random.randint(-5, 5)

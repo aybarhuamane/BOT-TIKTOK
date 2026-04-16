@@ -95,3 +95,36 @@ block-tnt-block-damage: false  a true
 
 
 /execute at @e[type=minecraft:iron_golem,limit=1,sort=nearest] run summon minecraft:tnt ~ ~1 ~ {Fuse:1}
+
+------------- SE MODIFICO
+
+Abre:
+
+plugins/Skript/config.sk
+
+y cambia esta línea:
+
+check for new version: true
+
+por:
+
+check for new version: false
+
+
+--------- SE MODIFICO - no aplica
+
+en server.properties:  CAMBIAR TRUE A FALSE  DEBE QUEDAR ASI:
+
+broadcast-console-to-ops=false
+broadcast-rcon-to-ops=false
+
+
+
+---------------  se cambio esto a este estado (ok importante)
+worldguard/config.yml  > para que reciba daño los golen con el tnt
+
+
+use-paper-entity-origin: true 
+explosion-flags-block-entity-damage: false
+
+/wg reload para recargar cambios
