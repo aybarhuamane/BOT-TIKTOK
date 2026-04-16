@@ -6,6 +6,7 @@
 !server 1.18.2/api/oficial.py
 !server 1.18.2/api/hologramas.py
 !server 1.19.4/server.properties
+!server 1.19.4/
 !server 1.19.4/README.md
 !server 1.19.4/plugins/Skript/arena.sk
 !server 1.19.4/plugins/Skript/backup.sk
