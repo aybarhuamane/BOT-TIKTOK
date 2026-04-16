@@ -1,0 +1,130 @@
+# BOT-MINECRAFT
+
+## UPDATE CODE
+'''  git add .
+    git commit -m "BOT- SEPARACION HOLOGRAMA-V1.0.2"
+    git push
+'''
+
+## Requisitos
+
+Para que funcione `server.jar`, debe ser de la **misma versión** que Minecraft Forge para que funcione correctamente en multijugador.
+
+**Ejemplo:**  
+- `server.jar`: 1.18.x  
+- Forge: 1.18.x  
+
+---
+
+## Configuración de `server.properties`
+
+enable-rcon=true
+rcon.password=123456
+rcon.port=25575
+
+online-mode=false
+
+*********************************************** dar permiso administrador desde el server
+
+PONER :  op ERICK
+[12:42:55] [Server thread/INFO]: Made Erick a server operator
+[12:42:56] [Server thread/INFO]: CAPITANCATT was slain by Zombie
+
+
+****************** EN EL SERVIDOR  *************
+stop : para detener el server
+save-on : activa el guardado automatico
+save-all : guarda manualmente todo
+
+-------------------- minecraft
+
+//wand     - selecciona las areas
+//expand vertical - expande la seleccion verticalmente
+/rg remove pozo - elimina la region del pozo
+/rg define pozo - define la region del pozo
+
+/rg list - para listar las regiones
+/rg info pozo - para obtener informacion de la region del pozo
+
+/rg flag pozo tnt deny - para que no se pueda usar tnt en la region del pozo
+/rg flag pozo build deny - para que no se pueda construir en la region del pozo 
+
+/deop CAPITANCATT
+
+
+/rg flag pozo wither-block-damage deny
+/rg flag pozo other-explosion deny
+/rg flag pozo tnt deny
+/rg flag pozo creeper-explosion deny
+
+---------- para bloquear zona de batalla  -------
+/rg remove pozo
+//wand
+//expand vert
+/rg define pozo
+
+/rg flag pozo tnt deny
+/rg flag pozo creeper-explosion deny
+/rg flag pozo other-explosion deny
+/rg flag pozo wither-block-damage deny
+/rg addowner pozo CAPITANCATT  (permite construir)   -  para remover   -  /rg removeowner pozo CAPITANCATT
+
+/deop CAPITANCATT
+
+
+
+/spawnpoint  # revivir en el mismo lugar siempre
+
+*******************************  mapa 2
+
+/sk reload granja  - para recargar el mapa
+/granja start - para iniciar el mapa
+/granja restart - para reiniciar el mapa
+/granja guardar - para guardar el mapa
+
+
+-----------
+En plugins/WorldGuard/config.yml, cambia esto:t
+
+
+block-tnt-block-damage: false  a true
+
+
+--- reiniciar con esto
+/wg reload
+
+
+/execute at @e[type=minecraft:iron_golem,limit=1,sort=nearest] run summon minecraft:tnt ~ ~1 ~ {Fuse:1}
+
+------------- SE MODIFICO
+
+Abre:
+
+plugins/Skript/config.sk
+
+y cambia esta línea:
+
+check for new version: true
+
+por:
+
+check for new version: false
+
+
+--------- SE MODIFICO - no aplica
+
+en server.properties:  CAMBIAR TRUE A FALSE  DEBE QUEDAR ASI:
+
+broadcast-console-to-ops=false
+broadcast-rcon-to-ops=false
+
+
+
+---------------  se cambio esto a este estado (ok importante)
+worldguard/config.yml  > para que reciba daño los golen con el tnt
+
+
+use-paper-entity-origin: true 
+explosion-flags-block-entity-damage: false
+
+/wg reload para recargar cambios
