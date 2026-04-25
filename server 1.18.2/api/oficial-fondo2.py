@@ -1,3 +1,4 @@
+#FONDO MATRIX
 # GAME 1  - MATAR A CREEP
 
 #library personalizada
@@ -315,10 +316,6 @@ async def on_comment(event):
 
     print(f"CHAT -> {user} | USER_LIMPIO: {user_tts} : {comment} ")
     # == NO LEE EMOTICONES ==
-
-    # user = limpiar_texto_tts(event.user.nickname)
-    # comment = limpiar_texto_tts(event.comment)
-    #print(f"CHAT -> {user}: {comment}")
     
     if user== "One player":
         speak(f"El anfitrion dice {comment[:100]}")
@@ -330,98 +327,6 @@ async def on_comment(event):
 
     if comment == "hola" or comment == "Hola" or comment == "HOLA" or comment == "buenas" or comment == "ola":
         speak(f" Hola {user_tts} bienvenido al directo")
-
-    if comment == "c12":
-        mc_command(f'summon minecraft:wolf {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-
-
-    # X1 TNT - 10 coin
-    if comment == "c13":
-        for i in range(10):
-            mc_command(f'summon minecraft:tnt {coord_centro} {{Fuse:80}}')
-
-    if comment == "c123":
-        for i in range(100):
-            x = random.randint(-5, 5)
-            z = random.randint(-5, 5)
-            mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~5 ~{z} {{Fuse:80}}')
-
-    if comment == "xyz":
-        for i in range(200):
-            mc_command(
-                f'summon minecraft:zombie {coord_evil} '
-                f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:leather_helmet",Count:1b}}],'
-                f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-            )
-        for i in range(50):
-            mc_command(
-                f'summon minecraft:witch {coord_evil} '
-                f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-            )
-        for i in range(30):
-            mc_command(
-                f'summon minecraft:piglin {coord_evil} '
-                f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-            )
-
-        for i in range(5):
-            mc_command(
-                f'summon minecraft:iron_golem {coord_good} '
-                f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-            )           
-        mc_command(f'summon minecraft:wolf {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-        mc_command(f'summon minecraft:wolf {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-
-    # GOLEN - 30 coin
-    if comment == "c14":
-        mc_command(f'summon minecraft:iron_golem {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-
-    # X10 LLUVIA TNT - 10 coin
-    if comment == "c15":
-        for i in range(10):
-            x = random.randint(-5, 5)
-            z = random.randint(-5, 5)
-            mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~5 ~{z} {{Fuse:80}}')
-
-    #####**********************************   TEAM B ZOMBIE  *******************************
-
-    # ZOMBIE CON CASCO HIERRO - 1 coin
-    if comment == "c16":
-        for i in range(2):
-            mc_command(
-                f'summon minecraft:zombie {coord_evil} '
-                f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}],'
-                f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-            )
-
-    # SKELETON - 5 coin
-    if comment == "c17":
-        mc_command(f'execute at {player} run summon minecraft:skeleton ~ ~1 ~ {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-
-    # CREEPER EXPLOSIVO - 30 coin
-    if comment == "c18":
-        mc_command(f'execute positioned {coord_evil} run summon minecraft:creeper ~ ~1 ~ {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-
-    # BOS WITHER - 500 coin
-    if comment == "c19":
-        mc_command(f'summon minecraft:wither {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-
-    if comment == "c21":
-        user_esc = user.replace("\\", "\\\\").replace('"', '\\"')
-        mc_command(
-            f'summon minecraft:warden {coord_evil} '
-            f'{{CustomName:\'{{"text":"{user_esc}"}}\',CustomNameVisible:1b,'
-            f'Brain:{{memories:{{"minecraft:dig_cooldown":{{value:{{}},ttl:1200L}}}}}}}}'
-        )
-    if comment == "c22":
-        for i in range(30):
-            x = random.randint(-5, 5)
-            z = random.randint(-5, 5)
-            mc_command(
-                f'execute positioned {coord_centro} run summon minecraft:zombie ~{x} ~5 ~{z} '
-                f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}],'
-                f'CustomName:\'{{"text":"ADMIN"}}\',CustomNameVisible:1b}}'
-            )
 
 
 
@@ -439,7 +344,7 @@ async def on_share(event):
 
     mc_command(
         f'summon minecraft:villager {coord_good} '
-        f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+        #f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
     )
 
     mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~')
@@ -456,6 +361,7 @@ async def on_gift(event):
 
     user = event.user.nickname
     user_tts = limpiar_texto_tts(user)
+    user_clean = limpiar_user_mc(user)
     user_id = getattr(event.user, "unique_id", user)
     gift_raw = event.gift.name
     gift = gift_raw.lower().strip()
@@ -515,96 +421,121 @@ async def on_gift(event):
     speak(f"Gracias {user_tts} por el regalo")  #ANTES ERA USER
 
 
-    #####**********************************   TEAM A DEFENSA  *******************************
+    #####**********************************   ACCIONES REGALOS  *******************************
 
-    # LOBO - 1 coin
-    if "maracas" in gift:
-        mc_command(
-            f'summon minecraft:wolf {coord_good} '
-            f'{{Owner:"{player}",CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-        )
-    # x5 TNT - 1 coin
-    if "rose" in gift:
-        for i in range(5):
+    # TNT simple
+    if "gg" in gift:
+        x = random.randint(-6, 6)
+        z = random.randint(-6, 6)
+        mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~ ~{z} {{Fuse:80}}')
+
+    # TNT masivo
+    elif "dona" in gift or "rosquilla" in gift:
+        for _ in range(50):
             x = random.randint(-6, 6)
             z = random.randint(-6, 6)
-            #mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~6 ~{z} {{Fuse:80}}')
             mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~ ~{z} {{Fuse:80}}')
 
-    # GOLEN - 1 coin
-
-    if "guardian wings" in gift:
-        for i in range(5):
+    # GOLEMS
+    elif "guardian wings" in gift:
+        for _ in range(3):
             x = random.randint(-5, 5)
             z = random.randint(-5, 5)
-            mc_command(f'execute positioned {coord_centro} run summon minecraft:iron_golem ~{x} ~ ~{z} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-            #mc_command(f'execute positioned {coord_centro} run summon minecraft:iron_golem ~{x} ~2 ~{z} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
+            mc_command(
+                f'execute positioned {coord_centro} run summon minecraft:iron_golem ~{x} ~ ~{z} '
+                f'{{CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
+            )
 
-
-    # X100 LLUVIA TNT - 100 coin
-    if "confeti" in gift:
-        for i in range(100):
-            x = random.randint(-7, 7)
-            z = random.randint(-7, 7)
-            mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~ ~{z} {{Fuse:80}}')
-            #mc_command(f'execute positioned {coord_centro} run summon minecraft:tnt ~{x} ~2 ~{z} {{Fuse:80}}')
-
-    #####**********************************   TEAM B ZOMBIE  *******************************
-
-        # CHANCHO- 1 coin
-    if "tiktok" in gift:
-        for i in range(5):
+    elif "osito mishka" in gift:
+        for _ in range(30):  # 🔥 BAJADO DE 100 A 30 PARA EVITAR LAG
             x = random.randint(-5, 5)
             z = random.randint(-5, 5)
-            #mc_command(
-            #    f'summon minecraft:piglin {coord_evil} '
-            #    f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-            #)
+            mc_command(
+                f'execute positioned {coord_centro} run summon minecraft:iron_golem ~{x} ~ ~{z} '
+                f'{{CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
+            )
+
+    # PIGLIN
+    elif "maracas" in gift:
+        for _ in range(5):
+            x = random.randint(-5, 5)
+            z = random.randint(-5, 5)
             mc_command(
                 f'execute positioned {coord_evil} run summon minecraft:zombified_piglin ~{x} ~ ~{z} '
                 f'{{HandItems:[{{id:"minecraft:golden_sword",Count:1b}},{{}}],'
-                f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+                f'CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
             )
 
-    # SKELETON  - 5 coin
-    if "rosquilla" in gift:
-        for i in range(20):
-            mc_command(f'execute at {player} run summon minecraft:skeleton ~ ~1 ~ {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-    # BRUJA - 5 coin
-    if "overreact" in gift or "Overreaect" in gift:
-        for i in range(20):
-            mc_command(f'summon minecraft:witch {coord_good} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-
-    # CREEPER EXPLOSIVO - 30 coin  corazon coreano
-    if "finger heart" in gift:
-    #    mc_command(f'give {player} minecraft:enchanted_golden_apple 5')
-        for i in range(10):
+    # ZOMBIES
+    elif "rose" in gift:
+        for _ in range(10):
             x = random.randint(-5, 5)
-            z = random.randint(-5, 5)   
-            mc_command(f'execute positioned {coord_evil} run summon minecraft:ravager ~{x} ~ ~{z} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-            #mc_command(f'execute positioned {coord_evil} run summon minecraft:ravager ~{x} ~5 ~{z} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-    if "money gun" in gift:
-        mc_command(f'summon minecraft:wither {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-    if "rose king" in gift or "big rose" in gift:
-        mc_command(f'summon minecraft:evoker {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
+            z = random.randint(-5, 5)
+            mc_command(
+                f'execute positioned {coord_evil} run summon minecraft:zombie ~{x} ~ ~{z} '
+                f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}],'
+                f'CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
+            )
 
-    if "gg" in gift or "GG" in gift:
+    # WITHER
+    elif "capibara" in gift:
+        for _ in range(3):
+            x = random.randint(-6, 6)
+            z = random.randint(-6, 6)
+            mc_command(
+                f'execute positioned {coord_evil} run summon minecraft:wither ~{x} ~ ~{z} '
+                f'{{CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
+            )
+
+    #RAVAGER
+    elif "rose big" in gift or "rose king" in gift:
+        for _ in range(10):
+            x = random.randint(-6, 6)
+            z = random.randint(-6, 6)
+            mc_command(
+                f'execute positioned {coord_evil} run summon minecraft:ravager ~{x} ~ ~{z} '
+                f'{{CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
+            )
+    #SKELETON ENDER
+    #SKELETON WITHER (Corregido)
+    elif "heart me" in gift:
+        for _ in range(5):
+            x = random.randint(-6, 6)
+            z = random.randint(-6, 6)
+            mc_command(
+                f'execute positioned {coord_evil} run summon minecraft:wither_skeleton ~{x} ~ ~{z} '
+                f'{{CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
+            )
+            
+    elif "perfum" in gift:
+        for _ in range(10):
+            x = random.randint(-6, 6)
+            z = random.randint(-6, 6)
+            mc_command(
+                f'execute positioned {coord_evil} run summon minecraft:evoker ~{x} ~ ~{z} '
+                f'{{CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
+            )
+
+    # WARDEN
+    elif "finger heart" in gift:
         user_esc = user.replace("\\", "\\\\").replace('"', '\\"')
         mc_command(
             f'summon minecraft:warden {coord_evil} '
-            f'{{CustomName:\'{{"text":"{user_esc}"}}\',CustomNameVisible:1b,'
+            f'{{CustomName:\'{{"text":"{user_clean}"}}\',CustomNameVisible:1b,'
             f'Brain:{{memories:{{"minecraft:dig_cooldown":{{value:{{}},ttl:1200L}}}}}}}}'
         )
 
-    if "rose king" in gift or "big rose" in gift:
-        mc_command(f'summon minecraft:evoker {coord_evil} {{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}')
-
-    # BOS DRAGON- 1000 coin
-    if "leon the kitten" in gift or "Leon the kitten" in gift:
+    # DRAGON
+    elif "leon the kitten" in gift:
         mc_command(
             f'summon minecraft:ender_dragon {coord_evil} '
-            f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
+            f'{{CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
         )
+
+    else:
+        print(f"[INFO] Regalo sin acción: {gift}")
+
+
     
     actualizar_topmoney_sidebar(mc_command, user_money)
     actualizar_holograma_money()
@@ -662,22 +593,18 @@ async def on_like(event):
         for i in range(5):
             x = random.randint(-5, 5)
             z = random.randint(-5, 5)
- 
-            # mc_command(
-            #     f'summon minecraft:zombie {coord_evil} '
-            #     f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:leather_helmet",Count:1b}}],'
-            #     f'CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-            # )
-            
-                #f'summon minecraft:zombie {coord_evil} '
+
             user_clean = limpiar_user_mc(user)
-            #print(f"ID TAG: owner_{user_clean}")
+            # mc_command(
+            #     f'execute positioned {coord_evil} run summon minecraft:zombie ~{x} ~ ~{z} '
+            #     f'{{ArmorItems:[{{id:"minecraft:golden_boots",Count:1b}},{{id:"minecraft:golden_leggings",Count:1b}},{{id:"minecraft:golden_chestplate",Count:1b}},{{id:"minecraft:golden_helmet",Count:1b}}],'
+            #     f'CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
+            # )
             mc_command(
-                #f'execute positioned {coord_evil} run summon minecraft:zombie ~{x} ~5 ~{z} '
-                f'execute positioned {coord_evil} run summon minecraft:zombie ~{x} ~ ~{z} '
-                f'{{ArmorItems:[{{}},{{}},{{}},{{id:"minecraft:diamond_helmet",Count:1b}}],'
-                f'CustomName:\'{{"text":"{user_clean}"}}\',"CustomNameVisible":1b}}'
+            f'execute positioned {coord_evil} run summon minecraft:zombie ~{x} ~ ~{z} '
+            f'{{ArmorItems:[{{id:"minecraft:golden_boots",Count:1b}},{{id:"minecraft:golden_leggings",Count:1b}},{{id:"minecraft:golden_chestplate",Count:1b}},{{id:"minecraft:golden_helmet",Count:1b}}]}}'
             )
+
         #==== efecto  al invocar ==
         #mc_command(f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}')
      
@@ -685,20 +612,6 @@ async def on_like(event):
        # mc_command(f'give {player} minecraft:arrow 16')
         tap_counter = 0
 
-    # if tap_double_counter >= 500:
-    #     speak("Gracias por los likes")
-
-    #     mc_command(
-    #         f'execute at {player} run summon minecraft:firework_rocket ~ ~3 ~ {{LifeTime:30}}'
-    #     )
-    #     CANTODAD DE ZOMBIE GENERADO POR TAP TAP
-
-    #     mc_command(
-    #        f'summon minecraft:iron_golem {coord_good} '
-    #        f'{{CustomName:\'{{"text":"{user}"}}\',"CustomNameVisible":1b}}'
-    #     )           
-
-    #     tap_double_counter = 0
 
 
 

@@ -1,16 +1,18 @@
 options:
     arenaX: -134
-    arenaY: 84
+    arenaY: 82
     arenaZ: 174
     arenaTNT:81
-    arenaXX: -135
-    arenaYY: 83
-    arenaZZ: 172
+    tpX: -135
+    tpY: 83
+    tpZ: 175
+    facingX:: 0
+    facingY: 90
     radio: 40
     radio2: 20    
     mundo: "world"
     tiempo_pelea: 1800 # 5 minutos
-    numero_golen: 4
+    numero_golen: 2
     numero_tnt: 1
 
 variables:
@@ -31,9 +33,9 @@ on load:
     delete {arena2.ganador}
 
 on damage of iron golem:
-    attacker is a zombie
+    #attacker is a zombie
+    attacker is a living entity
     set {lastHit.%uuid of victim%} to name of attacker
-    #set {lastHit.%uuid of victim%} to "%attacker%"
 
 
 on death of iron golem:
@@ -60,7 +62,8 @@ on death of iron golem:
             # ✅ GUARDAR GANADOR
             set {arena2.ganador} to {_owner}
             
-            broadcast "&aWIN FINAL: %{_owner}% destruyo el ultimo golem"
+            # ======= TITELEEE 
+            #broadcast "&aWIN FINAL: %{_owner}% destruyo el ultimo golem"
 
             #send title "&a&lWIN" with subtitle "&f%{_owner}% es el ganador" to all players for 2 seconds
             #send action bar "&6🏆 %{_owner}% ganó la ronda" to all players
@@ -77,6 +80,18 @@ function limpiar_arena():
     wait 1 tick
     broadcast "&c&lTodas las criaturas de la arena fueron eliminadas."
 
+function crear_jaula():
+    # TECHO
+    execute console command "fill -123 84 166 -141 84 180 minecraft:barrier"
+
+    # PAREDES
+    execute console command "fill -123 79 166 -123 88 180 minecraft:barrier"
+    execute console command "fill -141 79 166 -141 88 180 minecraft:barrier"
+    execute console command "fill -123 79 166 -141 88 166 minecraft:barrier"
+    execute console command "fill -123 79 180 -141 88 180 minecraft:barrier"
+
+function eliminar_jaula():
+    execute console command "fill -141 79 166 -123 84 180 minecraft:air"
 
 function invocar():
     execute console command "summon minecraft:iron_golem {@arenaX} {@arenaY} {@arenaZ} {CustomName:'{""text"":""Anfitrion""}',CustomNameVisible:1b}"
@@ -108,7 +123,7 @@ command /limpiararena:
     permission: op
     trigger:
         limpiar_arena()
-        execute console command "tp %player% {@arenaXX} {@arenaYY} {@arenaZZ}"
+
         
 
 function hay_golem_arena2() :: boolean:
@@ -224,7 +239,9 @@ command /arena2 <text>:
             broadcast "&b&l▶ ARENA 2 INICIADA"
             send title "&b&lARENA 2" with subtitle "&fMaten al iron golem" to all players for 3 seconds
             # --- RESTAURAMOS BLOQUES ------
-            restaurar_arena()
+            #restaurar_arena()
+            # --- CREAMOS JAULA INVISIBLE----
+            crear_jaula() 
             stop
 
         else if arg-1 is "stop":
@@ -234,7 +251,31 @@ command /arena2 <text>:
             delete {arena2.owner}
             broadcast "&c&l■ ARENA 2 DETENIDA."
             send title "&c&lARENA 2 OFF" to all players for 3 seconds
+            
+            # --- ELIMINAMOS JAULA INVISIBLE----
+            eliminar_jaula()
+            # --- RESTAURAMOS BLOQUES ------
+            restaurar_arena() 
             stop
+
+        else if arg-1 is "stop2":
+            set {arena2.activa} to false
+            set {arena2.countdown} to false
+            set {arena2.tiempo} to 20
+            delete {arena2.owner}
+            broadcast "&c&l■ ARENA 2 DETENIDA."
+            send title "&c&lARENA 2 OFF" to all players for 3 seconds
+            wait 1 second
+            limpiar_chat()
+            stop
+
+
+        else if arg-1 is "restart":
+            execute console command "arena2 stop"
+            wait 2 tick
+            execute console command "arena2 start"
+            stop
+
         else if arg-1 is "limpiar":
             make console execute command "kill @e[x={@arenaX},y={@arenaY},z={@arenaZ},distance=..{@radio},type=!player,type=!minecart,type=!armor_stand]"
             broadcast "&c&lTodas las criaturas de la arena fueron eliminadas."
@@ -242,13 +283,17 @@ command /arena2 <text>:
  
         else if arg-1 is "restaurar":
             restaurar_arena()
-            execute console command "tp %player% {@arenaXX} {@arenaYY} {@arenaZZ}"
             stop
         else if arg-1 is "invocar":
             invocar()
             stop
+
+        else if arg-1 is "tp":
+            #execute console command "tp CAPITANCATT {@tpX} {@tpY} {@tpZ} {@facingX} {@facingY}"
+            execute console command "tp CAPITANCATT -135 83 173 0 89"
+            stop
         else:
-            send "&cUso: /arena2 <start| stop | invocar |limpiar | restaurar >"
+            send "&cUso: /arena2 < start| stop | invocar |limpiar | restaurar | tp >"
 
 
 
@@ -262,14 +307,14 @@ every 1 second:
                 broadcast "&a&lCUENTA CANCELADA &f- apareció otro iron golem."
                 play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to all players
 
-            send action bar "&b&lARENA2 &7| &fTeam Golem vs Team Zombie" to all players
+            send action bar "&b&lARENA &7| &fTeam Golem vs Team Zombie" to all players
             #send action bar "&b&lARENA2 &7| &fEl iron golem sigue vivo" to all players
         else:
             if {arena2.countdown} is false:
                 set {arena2.countdown} to true
                 set {arena2.tiempo} to 25
-                broadcast "&e&l¡MATARON AL IRON GOLEM! &fTienen 25 segundos para invocar otro."
-                play sound "entity.warden.warning" with volume 1 and pitch 1 to all players
+                #broadcast "&e&l¡MATARON AL IRON GOLEM! &fTienen 25 segundos para invocar otro."
+                #play sound "entity.warden.warning" with volume 1 and pitch 1 to all players
             else:
                 if {arena2.tiempo} <= 0:
                     add 1 to {losses}
@@ -294,7 +339,7 @@ every 1 second:
                     #limpiar_arena()     #- Se ha quitado para continuar con el juego
                     #restaurar_arena()   #- Se ha quitado para continuar con el juego
                     if {arena2.owner} is set:
-                        execute console command "tp %{arena2.owner}% {@arenaXX} {@arenaYY} {@arenaZZ}"
+                        execute console command "tp %{arena2.owner}% {@tpX} {@tpY} {@tpZ} {@facingX} {@facingY}"
 
                     loop {@numero_golen} times:
                         invocar()
